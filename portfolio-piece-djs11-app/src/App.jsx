@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import mermaid from 'mermaid'; // Import Mermaid
-import './index.css';  // Include the CSS file for styling
+import './index.css';  // CSS file for styling
 
 // Genre mapping
 const genreMapping = {
