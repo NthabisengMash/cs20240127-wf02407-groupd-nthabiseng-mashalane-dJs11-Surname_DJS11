@@ -16,17 +16,17 @@ const genreMapping = {
 };
 
 const App = () => {
-  // State for storing podcast previews (show summaries)
   const [previews, setPreviews] = useState([]);
-  // State for storing the details of the clicked show
+  const [filteredPreviews, setFilteredPreviews] = useState([]);
   const [showDetails, setShowDetails] = useState(null);
-  // State for loading and error handling
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  // State to manage the timeout of the show details
   const [detailsTimeout, setDetailsTimeout] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
 
-  // Fetch podcast previews (summary of shows)
+  // Fetch podcast previews (show summaries)
   useEffect(() => {
     async function fetchPreviews() {
       setLoading(true);
@@ -42,6 +42,7 @@ const App = () => {
           genres: preview.genreIds ? preview.genreIds.map(genreId => genreMapping[genreId] || 'Unknown Genre') : [],
         }));
         setPreviews(mappedPreviews);
+        setFilteredPreviews(mappedPreviews); // Initially, set filtered previews to all
       } catch (error) {
         setError(error.message);
       } finally {
@@ -51,6 +52,17 @@ const App = () => {
 
     fetchPreviews();
   }, []);
+
+  // Filter previews based on search and selected genre
+  useEffect(() => {
+    const filtered = previews.filter(preview => {
+      const matchesQuery = preview.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           preview.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesGenre = selectedGenre ? preview.genres.includes(selectedGenre) : true; // Fix this comparison
+      return matchesQuery && matchesGenre;
+    });
+    setFilteredPreviews(filtered);
+  }, [searchQuery, selectedGenre, previews]);
 
   // Fetch the details of a specific show
   const fetchShowDetails = async (showId) => {
@@ -62,17 +74,15 @@ const App = () => {
         throw new Error('Failed to fetch show details');
       }
       const show = await response.json();
-      // Ensure that show.seasons is an array to avoid errors when calling .map()
       setShowDetails({
         ...show,
-        seasons: show.seasons || [], // Default to empty array if no seasons
+        seasons: show.seasons || [],
       });
-      
-      // Set timeout to hide details after 2 minutes (120000ms)
+
       if (detailsTimeout) {
-        clearTimeout(detailsTimeout); // Clear any existing timeouts
+        clearTimeout(detailsTimeout); 
       }
-      const newTimeout = setTimeout(() => setShowDetails(null), 120000); // Hide after 2 minutes
+      const newTimeout = setTimeout(() => setShowDetails(null), 120000);
       setDetailsTimeout(newTimeout);
       
     } catch (error) {
@@ -82,7 +92,10 @@ const App = () => {
     }
   };
 
-  // Component for displaying a list of podcast previews
+  const toggleDarkMode = () => {
+    setDarkMode(prevMode => !prevMode);
+  };
+
   const PreviewList = () => (
     <div>
       <h2>Podcast Previews</h2>
@@ -92,10 +105,10 @@ const App = () => {
         <p style={{ color: 'red' }}>Error: {error}</p>
       ) : (
         <div style={styles.previewContainer}>
-          {previews.map((preview) => (
+          {filteredPreviews.map((preview) => (
             <div
               key={preview.id}
-              onClick={() => fetchShowDetails(preview.id)} // Ensuring that this triggers the fetch
+              onClick={() => fetchShowDetails(preview.id)}
               style={styles.previewBlock}
             >
               <h3>{preview.title}</h3>
@@ -108,7 +121,6 @@ const App = () => {
     </div>
   );
 
-  // Component for displaying the details of a specific show
   const ShowDetails = () => {
     if (!showDetails) return null;
 
@@ -147,7 +159,6 @@ const App = () => {
     );
   };
 
-  // Mermaid Diagram component
   const MermaidDiagram = () => {
     useEffect(() => {
       mermaid.initialize({ startOnLoad: true });
@@ -198,13 +209,40 @@ const App = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <h1>Podcast Shows</h1>
-      <PreviewList />
-      {showDetails && <ShowDetails />}
-      
-      <h2>React Router - ER Diagram</h2>
-      <MermaidDiagram />
+    <div style={darkMode ? styles.darkContainer : styles.container}>
+      <div style={styles.appContent}>
+        <h1>Podcast Shows</h1>
+        
+        <button onClick={toggleDarkMode} style={styles.themeToggleBtn}>
+          Toggle {darkMode ? 'Light' : 'Dark'} Mode
+        </button>
+
+        <div style={styles.searchFilterContainer}>
+          <input
+            type="text"
+            placeholder="Search podcasts..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={styles.searchInput}
+          />
+          <select
+            value={selectedGenre}
+            onChange={e => setSelectedGenre(e.target.value)}
+            style={styles.genreSelect}
+          >
+            <option value="">All Genres</option>
+            {Object.values(genreMapping).map((genre) => (
+              <option key={genre} value={genre}>{genre}</option>
+            ))}
+          </select>
+        </div>
+
+        <PreviewList />
+        {showDetails && <ShowDetails />}
+        
+        <h2>React Router - ER Diagram</h2>
+        <MermaidDiagram />
+      </div>
     </div>
   );
 };
@@ -214,15 +252,29 @@ const styles = {
   container: {
     padding: '20px',
     fontFamily: 'Arial, sans-serif',
-    backgroundColor: '#ffffff', // White background to make the text stand out
-    color: '#333333', // Dark text for contrast
-    marginLeft: '50px',  // Add 50px margin on the left
-    marginRight: '50px', // Add 50px margin on the right
+    backgroundColor: '#ffffff',
+    color: '#333333',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxWidth: '1000px',
+  },
+  darkContainer: {
+    padding: '20px',
+    fontFamily: 'Arial, sans-serif',
+    backgroundColor: '#333333',
+    color: '#ffffff',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxWidth: '1000px',
+  },
+  appContent: {
+    margin: '0 auto',
+    padding: '20px',
   },
   previewContainer: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', // Compact grid layout with smaller blocks
-    gap: '20px', // Space between blocks
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: '20px',
   },
   previewBlock: {
     padding: '15px',
@@ -231,13 +283,13 @@ const styles = {
     boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
     cursor: 'pointer',
     transition: 'transform 0.2s, box-shadow 0.2s',
-    fontSize: '14px',  // Smaller text
+    fontSize: '14px',
     color: '#333',
-    height: '250px',  // Limit height for compact block
-    overflow: 'hidden',  // Prevent overflow
+    height: '250px',
+    overflow: 'hidden',
     display: 'flex',
-    flexDirection: 'column',  // Stack elements vertically
-    justifyContent: 'space-between', // Space out title, description, and genres
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   },
   showDetailsBlock: {
     marginTop: '30px',
@@ -264,6 +316,33 @@ const styles = {
     padding: '5px',
     backgroundColor: '#f1f1f1',
     borderRadius: '5px',
+  },
+  searchFilterContainer: {
+    marginBottom: '20px',
+    display: 'flex',
+    gap: '10px',
+  },
+  searchInput: {
+    padding: '10px',
+    fontSize: '16px',
+    borderRadius: '5px',
+    border: '1px solid #ddd',
+    width: '200px',
+  },
+  genreSelect: {
+    padding: '10px',
+    fontSize: '16px',
+    borderRadius: '5px',
+    border: '1px solid #ddd',
+  },
+  themeToggleBtn: {
+    padding: '10px 20px',
+    margin: '10px 0',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    backgroundColor: '#4CAF50',
+    color: 'white',
   },
 };
 
