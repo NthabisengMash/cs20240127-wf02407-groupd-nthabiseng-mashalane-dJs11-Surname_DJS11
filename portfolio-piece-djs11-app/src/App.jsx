@@ -18,10 +18,9 @@ const genreMapping = {
 const App = () => {
   const [previews, setPreviews] = useState([]);
   const [filteredPreviews, setFilteredPreviews] = useState([]);
-  const [showDetails, setShowDetails] = useState(null);
+  const [selectedPreview, setSelectedPreview] = useState(null);  // Track selected podcast
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [detailsTimeout, setDetailsTimeout] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('');
   const [darkMode, setDarkMode] = useState(false);
@@ -58,44 +57,17 @@ const App = () => {
     const filtered = previews.filter(preview => {
       const matchesQuery = preview.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            preview.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesGenre = selectedGenre ? preview.genres.includes(selectedGenre) : true; // Fix this comparison
+      const matchesGenre = selectedGenre ? preview.genres.includes(selectedGenre) : true;
       return matchesQuery && matchesGenre;
     });
     setFilteredPreviews(filtered);
   }, [searchQuery, selectedGenre, previews]);
 
-  // Fetch the details of a specific show
-  const fetchShowDetails = async (showId) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`https://podcast-api.netlify.app/id/${showId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch show details');
-      }
-      const show = await response.json();
-      setShowDetails({
-        ...show,
-        seasons: show.seasons || [],
-      });
-
-      if (detailsTimeout) {
-        clearTimeout(detailsTimeout); 
-      }
-      const newTimeout = setTimeout(() => setShowDetails(null), 120000);
-      setDetailsTimeout(newTimeout);
-      
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const toggleDarkMode = () => {
     setDarkMode(prevMode => !prevMode);
   };
 
+  // Full-screen preview display
   const PreviewList = () => (
     <div>
       <h2>Podcast Previews</h2>
@@ -108,7 +80,7 @@ const App = () => {
           {filteredPreviews.map((preview) => (
             <div
               key={preview.id}
-              onClick={() => fetchShowDetails(preview.id)}
+              onClick={() => setSelectedPreview(preview)} // Show full-screen preview
               style={styles.previewBlock}
             >
               <h3>{preview.title}</h3>
@@ -121,89 +93,22 @@ const App = () => {
     </div>
   );
 
-  const ShowDetails = () => {
-    if (!showDetails) return null;
+  const FullScreenPreview = () => {
+    if (!selectedPreview) return null;
 
-    const { title, description, seasons, genreIds } = showDetails;
-    const genres = genreIds ? genreIds.map((genreId) => genreMapping[genreId] || 'Unknown Genre') : [];
+    const { title, description, genres } = selectedPreview;
 
     return (
-      <div style={styles.showDetailsBlock}>
+      <div style={styles.fullScreenPreview}>
+        <button onClick={() => setSelectedPreview(null)} style={styles.closeButton}>
+          Close Preview
+        </button>
         <h2>{title}</h2>
         <p>{description}</p>
         <p><strong>Genres:</strong> {genres.join(', ')}</p>
-
-        <h3>Seasons</h3>
-        {seasons.length === 0 ? (
-          <p>No seasons available for this show.</p>
-        ) : (
-          seasons.map((season, index) => (
-            <div key={season.id} style={styles.seasonBlock}>
-              <h4>Season {index + 1}: {season.title}</h4>
-              <img src={season.image} alt={season.title} style={styles.seasonImage} />
-              <ul>
-                {season.episodes.map((episode) => (
-                  <li key={episode.id} style={styles.episodeBlock}>
-                    <strong>{episode.title}</strong>
-                    <audio controls>
-                      <source src={episode.file} type="audio/mpeg" />
-                      Your browser does not support the audio element.
-                    </audio>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))
-        )}
-      </div>
-    );
-  };
-
-  const MermaidDiagram = () => {
-    useEffect(() => {
-      mermaid.initialize({ startOnLoad: true });
-      mermaid.contentLoaded();
-    }, []);
-
-    const mermaidCode = `
-      erDiagram
-          ROUTER {
-              string type "BrowserRouter"
-              string behavior "Wraps the application and enables routing"
-          }
-
-          ROUTE {
-              string path "URL path, can include dynamic segments"
-              string component "Component that is rendered when path is matched"
-              string exact "Whether the route matches exactly"
-          }
-
-          LINK {
-              string to "Path to navigate to"
-              string behavior "Used for navigation, prevents full page reload"
-          }
-
-          HISTORY {
-              string push "Programmatically navigate to a new route"
-              string goBack "Navigate back in history"
-              string goForward "Navigate forward in history"
-          }
-
-          COMPONENT {
-              string name "A React component rendered by a route"
-              string behavior "Display content based on route"
-          }
-
-          ROUTER ||--o| ROUTE: "contains"
-          ROUTE ||--o| COMPONENT: "renders"
-          LINK ||--o| ROUTE: "links to"
-          HISTORY ||--o| ROUTE: "navigates to"
-          ROUTE ||--o| LINK: "links to"
-    `;
-
-    return (
-      <div className="mermaid">
-        {mermaidCode}
+        <button onClick={() => setSelectedPreview(null)} style={styles.closeButton}>
+          Back to List
+        </button>
       </div>
     );
   };
@@ -212,7 +117,7 @@ const App = () => {
     <div style={darkMode ? styles.darkContainer : styles.container}>
       <div style={styles.appContent}>
         <h1>Podcast Shows</h1>
-        
+
         <button onClick={toggleDarkMode} style={styles.themeToggleBtn}>
           Toggle {darkMode ? 'Light' : 'Dark'} Mode
         </button>
@@ -237,11 +142,8 @@ const App = () => {
           </select>
         </div>
 
-        <PreviewList />
-        {showDetails && <ShowDetails />}
-        
-        <h2>React Router - ER Diagram</h2>
-        <MermaidDiagram />
+        {/* Render Full-Screen Preview if Selected */}
+        {selectedPreview ? <FullScreenPreview /> : <PreviewList />}
       </div>
     </div>
   );
@@ -291,31 +193,30 @@ const styles = {
     flexDirection: 'column',
     justifyContent: 'space-between',
   },
-  showDetailsBlock: {
-    marginTop: '30px',
+  fullScreenPreview: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    color: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
     padding: '20px',
-    backgroundColor: '#f9f9f9',
-    borderRadius: '8px',
-    boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
+  },
+  closeButton: {
+    padding: '10px 20px',
+    backgroundColor: '#ff4d4d',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
     fontSize: '16px',
-    color: '#333',
-  },
-  seasonBlock: {
     marginTop: '20px',
-    padding: '15px',
-    backgroundColor: '#e8e8e8',
-    borderRadius: '8px',
-  },
-  seasonImage: {
-    width: '150px',
-    borderRadius: '5px',
-    marginBottom: '10px',
-  },
-  episodeBlock: {
-    marginBottom: '10px',
-    padding: '5px',
-    backgroundColor: '#f1f1f1',
-    borderRadius: '5px',
   },
   searchFilterContainer: {
     marginBottom: '20px',
