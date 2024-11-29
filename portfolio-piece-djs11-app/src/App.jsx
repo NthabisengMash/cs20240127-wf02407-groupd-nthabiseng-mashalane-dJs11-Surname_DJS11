@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import mermaid from 'mermaid'; // Import Mermaid
+import './index.css';  // Include the CSS file for styling
 
 // Genre mapping
 const genreMapping = {
@@ -21,6 +23,8 @@ const App = () => {
   // State for loading and error handling
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // State to manage the timeout of the show details
+  const [detailsTimeout, setDetailsTimeout] = useState(null);
 
   // Fetch podcast previews (summary of shows)
   useEffect(() => {
@@ -63,6 +67,14 @@ const App = () => {
         ...show,
         seasons: show.seasons || [], // Default to empty array if no seasons
       });
+      
+      // Set timeout to hide details after 2 minutes (120000ms)
+      if (detailsTimeout) {
+        clearTimeout(detailsTimeout); // Clear any existing timeouts
+      }
+      const newTimeout = setTimeout(() => setShowDetails(null), 120000); // Hide after 2 minutes
+      setDetailsTimeout(newTimeout);
+      
     } catch (error) {
       setError(error.message);
     } finally {
@@ -83,7 +95,7 @@ const App = () => {
           {previews.map((preview) => (
             <div
               key={preview.id}
-              onClick={() => fetchShowDetails(preview.id)}
+              onClick={() => fetchShowDetails(preview.id)} // Ensuring that this triggers the fetch
               style={styles.previewBlock}
             >
               <h3>{preview.title}</h3>
@@ -135,11 +147,64 @@ const App = () => {
     );
   };
 
+  // Mermaid Diagram component
+  const MermaidDiagram = () => {
+    useEffect(() => {
+      mermaid.initialize({ startOnLoad: true });
+      mermaid.contentLoaded();
+    }, []);
+
+    const mermaidCode = `
+      erDiagram
+          ROUTER {
+              string type "BrowserRouter"
+              string behavior "Wraps the application and enables routing"
+          }
+
+          ROUTE {
+              string path "URL path, can include dynamic segments"
+              string component "Component that is rendered when path is matched"
+              string exact "Whether the route matches exactly"
+          }
+
+          LINK {
+              string to "Path to navigate to"
+              string behavior "Used for navigation, prevents full page reload"
+          }
+
+          HISTORY {
+              string push "Programmatically navigate to a new route"
+              string goBack "Navigate back in history"
+              string goForward "Navigate forward in history"
+          }
+
+          COMPONENT {
+              string name "A React component rendered by a route"
+              string behavior "Display content based on route"
+          }
+
+          ROUTER ||--o| ROUTE: "contains"
+          ROUTE ||--o| COMPONENT: "renders"
+          LINK ||--o| ROUTE: "links to"
+          HISTORY ||--o| ROUTE: "navigates to"
+          ROUTE ||--o| LINK: "links to"
+    `;
+
+    return (
+      <div className="mermaid">
+        {mermaidCode}
+      </div>
+    );
+  };
+
   return (
     <div style={styles.container}>
       <h1>Podcast Shows</h1>
       <PreviewList />
-      <ShowDetails />
+      {showDetails && <ShowDetails />}
+      
+      <h2>React Router - ER Diagram</h2>
+      <MermaidDiagram />
     </div>
   );
 };
@@ -151,10 +216,12 @@ const styles = {
     fontFamily: 'Arial, sans-serif',
     backgroundColor: '#ffffff', // White background to make the text stand out
     color: '#333333', // Dark text for contrast
+    marginLeft: '50px',  // Add 50px margin on the left
+    marginRight: '50px', // Add 50px margin on the right
   },
   previewContainer: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', // Responsive grid layout
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', // Compact grid layout with smaller blocks
     gap: '20px', // Space between blocks
   },
   previewBlock: {
@@ -164,13 +231,13 @@ const styles = {
     boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
     cursor: 'pointer',
     transition: 'transform 0.2s, box-shadow 0.2s',
-    fontSize: '16px',
+    fontSize: '14px',  // Smaller text
     color: '#333',
-    minHeight: '200px', // Ensure block has enough height for content
-  },
-  previewBlockHover: {
-    transform: 'scale(1.05)',
-    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+    height: '250px',  // Limit height for compact block
+    overflow: 'hidden',  // Prevent overflow
+    display: 'flex',
+    flexDirection: 'column',  // Stack elements vertically
+    justifyContent: 'space-between', // Space out title, description, and genres
   },
   showDetailsBlock: {
     marginTop: '30px',
@@ -178,7 +245,7 @@ const styles = {
     backgroundColor: '#f9f9f9',
     borderRadius: '8px',
     boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
-    fontSize: '18px',
+    fontSize: '16px',
     color: '#333',
   },
   seasonBlock: {
