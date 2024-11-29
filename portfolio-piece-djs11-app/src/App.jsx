@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// Genre mapping based on provided table
+// Genre mapping
 const genreMapping = {
   1: 'Personal Growth',
   2: 'Investigative Journalism',
@@ -14,100 +14,170 @@ const genreMapping = {
 };
 
 const App = () => {
+  // State for storing podcast previews (show summaries)
   const [previews, setPreviews] = useState([]);
+  // State for storing the details of the clicked show
   const [showDetails, setShowDetails] = useState(null);
+  // State for loading and error handling
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Fetch all previews (summarized shows) on component mount
+  // Fetch podcast previews (summary of shows)
   useEffect(() => {
     async function fetchPreviews() {
+      setLoading(true);
+      setError(null);
       try {
         const response = await fetch('https://podcast-api.netlify.app');
+        if (!response.ok) {
+          throw new Error('Failed to fetch previews');
+        }
         const data = await response.json();
         const mappedPreviews = data.map(preview => ({
           ...preview,
-          genres: preview.genreIds.map(genreId => genreMapping[genreId] || 'Unknown Genre'),
+          genres: preview.genreIds ? preview.genreIds.map(genreId => genreMapping[genreId] || 'Unknown Genre') : [],
         }));
         setPreviews(mappedPreviews);
       } catch (error) {
-        console.error('Error fetching previews:', error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
       }
     }
+
     fetchPreviews();
   }, []);
 
-  // Fetch show details by ID
+  // Fetch the details of a specific show
   const fetchShowDetails = async (showId) => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`https://podcast-api.netlify.app/id/${showId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch show details');
+      }
       const show = await response.json();
-      setShowDetails(show);
+      // Ensure that show.seasons is an array to avoid errors when calling .map()
+      setShowDetails({
+        ...show,
+        seasons: show.seasons || [], // Default to empty array if no seasons
+      });
     } catch (error) {
-      console.error('Error fetching show details:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Render Preview List
+  // Component for displaying a list of podcast previews
   const PreviewList = () => (
     <div>
       <h2>Podcast Previews</h2>
-      <ul>
-        {previews.map(preview => (
-          <li
-            key={preview.id}
-            onClick={() => fetchShowDetails(preview.id)}
-            style={{ cursor: 'pointer', padding: '10px', margin: '10px 0', background: '#f4f4f4', borderRadius: '5px' }}
-          >
-            <strong>{preview.title}</strong><br />
-            {preview.description}<br />
-            <span>{preview.genres.join(', ')}</span>
-          </li>
-        ))}
-      </ul>
+      {loading ? (
+        <p>Loading previews...</p>
+      ) : error ? (
+        <p style={{ color: 'red' }}>Error: {error}</p>
+      ) : (
+        <ul style={styles.list}>
+          {previews.map((preview) => (
+            <li
+              key={preview.id}
+              onClick={() => fetchShowDetails(preview.id)}
+              style={styles.previewItem}
+            >
+              <h3>{preview.title}</h3>
+              <p>{preview.description}</p>
+              <p><strong>Genres:</strong> {preview.genres.join(', ')}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 
-  // Render Show Details
+  // Component for displaying the details of a specific show
   const ShowDetails = () => {
     if (!showDetails) return null;
 
     const { title, description, seasons, genreIds } = showDetails;
-    const genres = genreIds.map(genreId => genreMapping[genreId] || 'Unknown Genre');
+    const genres = genreIds ? genreIds.map((genreId) => genreMapping[genreId] || 'Unknown Genre') : [];
 
     return (
-      <div style={{ marginTop: '20px' }}>
+      <div style={styles.showDetails}>
         <h2>{title}</h2>
         <p>{description}</p>
         <p><strong>Genres:</strong> {genres.join(', ')}</p>
 
         <h3>Seasons</h3>
-        {seasons.map((season, index) => (
-          <div key={season.id}>
-            <h4>Season {index + 1}: {season.title}</h4>
-            <img src={season.image} alt={season.title} style={{ width: '100px', borderRadius: '5px' }} />
-            <ul>
-              {season.episodes.map((episode) => (
-                <li key={episode.id}>
-                  <strong>{episode.title}</strong><br />
-                  <audio controls>
-                    <source src={episode.file} type="audio/mpeg" />
-                    Your browser does not support the audio element.
-                  </audio>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {seasons.length === 0 ? (
+          <p>No seasons available for this show.</p>
+        ) : (
+          seasons.map((season, index) => (
+            <div key={season.id} style={styles.season}>
+              <h4>Season {index + 1}: {season.title}</h4>
+              <img src={season.image} alt={season.title} style={styles.seasonImage} />
+              <ul>
+                {season.episodes.map((episode) => (
+                  <li key={episode.id} style={styles.episode}>
+                    <strong>{episode.title}</strong>
+                    <audio controls>
+                      <source src={episode.file} type="audio/mpeg" />
+                      Your browser does not support the audio element.
+                    </audio>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        )}
       </div>
     );
   };
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={styles.container}>
       <h1>Podcast Shows</h1>
       <PreviewList />
       <ShowDetails />
     </div>
   );
+};
+
+// Simple styles for better visualization
+const styles = {
+  container: {
+    padding: '20px',
+    fontFamily: 'Arial, sans-serif',
+  },
+  list: {
+    padding: '0',
+    listStyleType: 'none',
+  },
+  previewItem: {
+    cursor: 'pointer',
+    padding: '15px',
+    margin: '10px 0',
+    backgroundColor: '#f4f4f4',
+    borderRadius: '5px',
+    boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
+  },
+  showDetails: {
+    marginTop: '20px',
+    padding: '15px',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '5px',
+  },
+  season: {
+    marginTop: '20px',
+  },
+  seasonImage: {
+    width: '150px',
+    borderRadius: '5px',
+  },
+  episode: {
+    marginBottom: '10px',
+  },
 };
 
 export default App;
