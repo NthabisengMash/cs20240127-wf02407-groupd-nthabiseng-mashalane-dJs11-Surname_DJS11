@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import mermaid from 'mermaid'; // Import Mermaid
 import './index.css';  // CSS file for styling
 
 // Genre mapping
@@ -67,7 +66,7 @@ const App = () => {
     setDarkMode(prevMode => !prevMode);
   };
 
-  // Full-screen preview display
+  // Full-screen preview display with audio player
   const PreviewList = () => (
     <div>
       <h2>Podcast Previews</h2>
@@ -86,6 +85,14 @@ const App = () => {
               <h3>{preview.title}</h3>
               <p>{preview.description}</p>
               <p><strong>Genres:</strong> {preview.genres.join(', ')}</p>
+
+              {/* Add audio player if URL exists */}
+              {preview.audioUrl && (
+                <audio controls style={styles.audioPlayer}>
+                  <source src={preview.audioUrl} type="audio/mp3" />
+                  Your browser does not support the audio element.
+                </audio>
+              )}
             </div>
           ))}
         </div>
@@ -96,7 +103,7 @@ const App = () => {
   const FullScreenPreview = () => {
     if (!selectedPreview) return null;
 
-    const { title, description, genres } = selectedPreview;
+    const { title, description, genres, audioUrl } = selectedPreview;
 
     return (
       <div style={styles.fullScreenPreview}>
@@ -106,6 +113,15 @@ const App = () => {
         <h2>{title}</h2>
         <p>{description}</p>
         <p><strong>Genres:</strong> {genres.join(', ')}</p>
+
+        {/* Full-screen audio player */}
+        {audioUrl && (
+          <audio controls style={styles.audioPlayer}>
+            <source src={audioUrl} type="audio/mp3" />
+            Your browser does not support the audio element.
+          </audio>
+        )}
+
         <button onClick={() => setSelectedPreview(null)} style={styles.closeButton}>
           Back to List
         </button>
@@ -245,6 +261,10 @@ const styles = {
     cursor: 'pointer',
     backgroundColor: '#4CAF50',
     color: 'white',
+  },
+  audioPlayer: {
+    marginTop: '10px',
+    width: '100%',
   },
   '@media (max-width: 768px)': {
     previewContainer: {
