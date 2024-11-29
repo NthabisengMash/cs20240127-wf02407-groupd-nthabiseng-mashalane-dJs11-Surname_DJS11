@@ -1,43 +1,21 @@
-import { useEffect, useState } from 'react';
-import { getPreviews } from './api';
-import { genreMapping } from './genreMapping';
+// src/App.jsx
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import ShowList from './components/ShowList';
+import ShowDetail from './components/ShowDetail';
 
-function App() {
-  const [previews, setPreviews] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getPreviews();
-        setPreviews(data);
-      } catch (error) {
-        console.error('Error fetching previews:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  if (loading) return <div>Loading...</div>;
-
+const App = () => {
   return (
-    <div>
-      <h1>Podcast Previews</h1>
-      <ul>
-        {previews.map((preview) => (
-          <li key={preview.id}>
-            <h2>{preview.title}</h2>
-            <p>{preview.description}</p>
-            <p>Seasons: {preview.seasons}</p>
-            <p>Genres: {preview.genreIds.map((id) => genreMapping[id]).join(', ')}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Router>
+      <div className="App">
+        <h1>Podcast Shows</h1>
+        <Routes>
+          <Route path="/" element={<ShowList />} />
+          <Route path="/show/:id" element={<ShowDetail />} />
+        </Routes>
+      </div>
+    </Router>
   );
-}
+};
 
 export default App;
