@@ -149,10 +149,13 @@ const styles = {
   container: {
     padding: '20px',
     fontFamily: 'Arial, sans-serif',
+    backgroundColor: '#ffffff', // White background to make the text stand out
+    color: '#333333', // Dark text for contrast
   },
   list: {
     padding: '0',
     listStyleType: 'none',
+    fontSize: '18px', // Slightly larger font size for readability
   },
   previewItem: {
     cursor: 'pointer',
@@ -161,12 +164,16 @@ const styles = {
     backgroundColor: '#f4f4f4',
     borderRadius: '5px',
     boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
+    fontSize: '16px', // Text size for list items
+    color: '#333', // Dark text color
   },
   showDetails: {
     marginTop: '20px',
     padding: '15px',
     backgroundColor: '#f9f9f9',
     borderRadius: '5px',
+    fontSize: '18px', // Larger text size for show details
+    color: '#333', // Dark text color for contrast
   },
   season: {
     marginTop: '20px',
