@@ -156,9 +156,8 @@ const styles = {
     fontFamily: 'Arial, sans-serif',
     backgroundColor: '#ffffff',
     color: '#333333',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    maxWidth: '1000px',
+    marginLeft: '50px',  // Add 50px margin on the left
+    marginRight: '50px',
   },
   darkContainer: {
     padding: '20px',
@@ -175,7 +174,7 @@ const styles = {
   },
   previewContainer: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
     gap: '20px',
   },
   previewBlock: {
@@ -207,6 +206,7 @@ const styles = {
     justifyContent: 'center',
     zIndex: 1000,
     padding: '20px',
+    overflowY: 'auto',
   },
   closeButton: {
     padding: '10px 20px',
@@ -222,6 +222,7 @@ const styles = {
     marginBottom: '20px',
     display: 'flex',
     gap: '10px',
+    flexWrap: 'wrap',
   },
   searchInput: {
     padding: '10px',
@@ -244,6 +245,20 @@ const styles = {
     cursor: 'pointer',
     backgroundColor: '#4CAF50',
     color: 'white',
+  },
+  '@media (max-width: 768px)': {
+    previewContainer: {
+      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    },
+    searchInput: {
+      width: '150px',
+    },
+    genreSelect: {
+      width: '150px',
+    },
+    themeToggleBtn: {
+      fontSize: '14px',
+    },
   },
 };
 
